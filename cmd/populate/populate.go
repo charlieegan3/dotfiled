@@ -69,9 +69,14 @@ func main() {
 	var currentFileChunk models.FileChunk
 	for _, f := range files {
 		for _, c := range filechunker.Chunk(f.Contents) {
-			currentChunk = createOrLinkChunk(c, f, db)
-			currentFileChunk = models.FileChunk{FileID: f.ID, ChunkID: currentChunk.ID}
-			db.Create(&currentFileChunk)
+			if validChunk(c, f) {
+				currentChunk = createOrLinkChunk(c, f, db)
+				currentFileChunk = models.FileChunk{
+					FileID:  f.ID,
+					ChunkID: currentChunk.ID,
+				}
+				db.Create(&currentFileChunk)
+			}
 		}
 	}
 }
@@ -108,4 +113,14 @@ func reduceNameToType(name string) string {
 		//TODO
 		return "other"
 	}
+}
+
+func validChunk(chunk string, file models.File) bool {
+	reducedName := reduceNameToType(file.Name)
+	if reducedName == "vim" {
+		if chunk[0] == '"' {
+			return false
+		}
+	}
+	return true
 }
