@@ -55,10 +55,11 @@ func index(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	port := os.Getenv("PORT")
+	port := os.Args[1]
 	fmt.Printf("Listening on port %v\n", port)
 
-	db, _ = gorm.Open("postgres", "user="+os.Getenv("DB_USER")+" dbname="+os.Getenv("DB_NAME")+" sslmode="+os.Getenv("DB_SSL_MODE"))
+	db, _ = gorm.Open("postgres", os.Getenv("DATABASE_URL"))
+	db.AutoMigrate(&File{}, &Chunk{}, &FileChunk{})
 
 	http.HandleFunc("/", index)
 	http.ListenAndServe(":"+port, nil)
