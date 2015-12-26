@@ -52,7 +52,7 @@ func main() {
 		parts := strings.Split(url, "/")
 		repo := parts[len(parts)-1]
 		user := parts[len(parts)-2]
-		fmt.Printf("%v / %v\n", parts[len(parts)-1], parts[len(parts)-2])
+		fmt.Printf("%v / %v\n", parts[len(parts)-2], parts[len(parts)-1])
 		repoData := repofiles.NewRepo(user, repo, "master")
 		repoData.List(repofiles.Credentials{User: os.Getenv("GITHUB_USER"), Token: os.Getenv("GITHUB_TOKEN")})
 		files := repoData.Files("vimrc", repofiles.Credentials{User: os.Getenv("GITHUB_USER"), Token: os.Getenv("GITHUB_TOKEN")})
@@ -83,13 +83,29 @@ func hashChunk(chunk string) string {
 }
 
 func createOrLinkChunk(chunk string, file models.File, db gorm.DB) models.Chunk {
+	reducedName := reduceNameToType(file.Name)
 	currentChunk := models.Chunk{}
 	chunkHash := hashChunk(chunk)
-	db.Where("hash = ? and file_type = ?", chunkHash, file.Name).First(&currentChunk)
+	db.Where("hash = ? and file_type = ?", chunkHash, reducedName).First(&currentChunk)
 
 	if currentChunk.ID == 0 {
-		currentChunk = models.Chunk{FileType: file.Name, Hash: chunkHash, Contents: chunk}
+		currentChunk = models.Chunk{
+			FileType: reducedName,
+			Hash:     chunkHash,
+			Contents: chunk,
+		}
 		db.Create(&currentChunk)
 	}
 	return currentChunk
+}
+
+func reduceNameToType(name string) string {
+	if strings.Contains(name, "bashrc") {
+		return "bash"
+	} else if strings.Contains(name, "vimrc") {
+		return "vim"
+	} else {
+		//TODO
+		return "other"
+	}
 }
