@@ -1,0 +1,6 @@
+package: github.com/charlieegan3/dotfiled
+import:
+- package: github.com/charlieegan3/filechunker
+- package: github.com/charlieegan3/repofiles
+- package: github.com/jinzhu/gorm
+- package: github.com/lib/pq
