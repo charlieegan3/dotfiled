@@ -46,6 +46,10 @@ func main() {
 	db, _ := gorm.Open("postgres", os.Getenv("DATABASE_URL"))
 	db.DropTable(&models.File{}, &models.Chunk{}, &models.FileChunk{})
 	db.AutoMigrate(&models.File{}, &models.Chunk{}, &models.FileChunk{})
+	credentials := repofiles.Credentials{
+		User:  os.Getenv("GITHUB_USER"),
+		Token: os.Getenv("GITHUB_TOKEN"),
+	}
 
 	var currentFile models.File
 	for _, url := range dotfileRepos {
@@ -54,8 +58,9 @@ func main() {
 		user := parts[len(parts)-2]
 		fmt.Printf("%v / %v\n", parts[len(parts)-2], parts[len(parts)-1])
 		repoData := repofiles.NewRepo(user, repo, "master")
-		repoData.List(repofiles.Credentials{User: os.Getenv("GITHUB_USER"), Token: os.Getenv("GITHUB_TOKEN")})
-		files := repoData.Files("bash", repofiles.Credentials{User: os.Getenv("GITHUB_USER"), Token: os.Getenv("GITHUB_TOKEN")})
+		repoData.List(credentials)
+		files := repoData.Files("bash", credentials)
+		files = append(files, repoData.Files("vimrc", credentials)...)
 		for _, f := range files {
 			currentFile = models.File{Name: f.Name(), Contents: f.Contents}
 			db.Create(&currentFile)
