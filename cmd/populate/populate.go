@@ -55,7 +55,7 @@ func main() {
 		fmt.Printf("%v / %v\n", parts[len(parts)-2], parts[len(parts)-1])
 		repoData := repofiles.NewRepo(user, repo, "master")
 		repoData.List(repofiles.Credentials{User: os.Getenv("GITHUB_USER"), Token: os.Getenv("GITHUB_TOKEN")})
-		files := repoData.Files("vimrc", repofiles.Credentials{User: os.Getenv("GITHUB_USER"), Token: os.Getenv("GITHUB_TOKEN")})
+		files := repoData.Files("bash", repofiles.Credentials{User: os.Getenv("GITHUB_USER"), Token: os.Getenv("GITHUB_TOKEN")})
 		for _, f := range files {
 			currentFile = models.File{Name: f.Name(), Contents: f.Contents}
 			db.Create(&currentFile)
@@ -105,13 +105,13 @@ func createOrLinkChunk(chunk string, file models.File, db gorm.DB) models.Chunk 
 }
 
 func reduceNameToType(name string) string {
-	if strings.Contains(name, "bashrc") {
+	if strings.Contains(name, "bash") {
 		return "bash"
 	} else if strings.Contains(name, "vimrc") {
 		return "vim"
 	} else {
 		//TODO
-		return "other"
+		return name
 	}
 }
 
@@ -120,6 +120,15 @@ func validChunk(chunk string, file models.File) bool {
 	if reducedName == "vim" {
 		if chunk[0] == '"' {
 			return false
+		}
+	}
+	if reducedName == "bash" {
+		if chunk[0] == '#' || chunk == "}" || chunk == "fi" {
+			return false
+		} else if len(chunk) > 3 {
+			if chunk[0:4] == "elif" || chunk[0:4] == "main" {
+				return false
+			}
 		}
 	}
 	return true
