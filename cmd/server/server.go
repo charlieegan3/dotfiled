@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -25,7 +24,7 @@ func index(w http.ResponseWriter, r *http.Request) {
 		Count    uint
 	}
 	var results []Result
-	db.Table("chunks").
+	matchingFileTypeParam(&db, r.URL.Query().Get("file_type")).
 		Select("chunks.id, chunks.contents, chunks.file_type, count(file_chunks.id)").
 		Joins("inner join file_chunks on file_chunks.chunk_id = chunks.id").
 		Group("chunks.id").
@@ -37,18 +36,26 @@ func index(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, string(jsonString))
 }
 
+func matchingFileTypeParam(db *gorm.DB, fileType string) *gorm.DB {
+	if len(fileType) > 0 {
+		return db.Table("chunks").Where("file_type = ?", fileType)
+	} else {
+		return db.Table("chunks")
+	}
+}
+
 func main() {
 	if len(os.Args) == 1 {
 		log.Fatal("Missing PORT parameter")
 	} else if os.Getenv("DATABASE_URL") == "" {
 		log.Fatal("Missing DATABASE_URL environment variable")
 	}
-	port := os.Args[1]
-	fmt.Printf("Listening on port %v\n", port)
 
 	db, _ = gorm.Open("postgres", os.Getenv("DATABASE_URL"))
 	db.AutoMigrate(&models.File{}, &models.Chunk{}, &models.FileChunk{})
+	fs := http.FileServer(http.Dir("static"))
 
-	http.HandleFunc("/", index)
-	http.ListenAndServe(":"+port, nil)
+	http.Handle("/", fs)
+	http.HandleFunc("/filechunks", index)
+	http.ListenAndServe(":"+os.Args[1], nil)
 }
