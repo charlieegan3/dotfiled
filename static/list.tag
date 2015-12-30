@@ -3,8 +3,8 @@
     <div class="file-chunk clearfix" each={ fileChunks }>
 		<p class="contents">{ Contents }</p>
 		<p class="details">
-		  <span class="file-type">{ FileType }</span>
-		  <span class="count">{ Count } files</span>
+		  <span class="file-type { FileType }">{ FileType }</span>
+		  <span class="count">used <strong>{ Count }</strong> times</span>
 		</p>
 	</div>
   </div>
@@ -18,7 +18,7 @@
     }
 
     .file-chunk {
-      margin-bottom: 10px;
+      margin: 10px;
     }
 
     .contents {
@@ -26,7 +26,7 @@
       padding: 5px;
       margin: 0px;
       font-family: "Share Tech Mono", monospace;
-      font-size: 1.5em;
+      font-size: 1.2em;
       text-align: center;
       background-color: #333;
     }
@@ -55,5 +55,8 @@
       float: left;
       text-align: right;
     }
+
+    .bash { background-color: Tomato; }
+    .vim{ background-color: LightGreen; }
   </style>
 </list>
