@@ -21,16 +21,23 @@ func index(w http.ResponseWriter, r *http.Request) {
 		ID       uint
 		Contents string
 		FileType string
+		Tags     string
 		Count    uint
 	}
 	var results []Result
-	matchingFileTypeParam(&db, r.URL.Query().Get("file_type")).
-		Select("chunks.id, chunks.contents, chunks.file_type, count(file_chunks.id)").
+	tempDb := db.Table("chunks")
+	tempDb = matchingFileTypeParam(tempDb, r.URL.Query().Get("file_type"))
+	tempDb = matchingTags(tempDb, r.URL.Query().Get("tags"))
+	tempDb.Select("chunks.id, chunks.contents, chunks.file_type, chunks.tags, count(file_chunks.id)").
 		Joins("inner join file_chunks on file_chunks.chunk_id = chunks.id").
 		Group("chunks.id").
 		Having("count(file_chunks.id) > 3").
 		Order("count(file_chunks.id) desc").
 		Scan(&results)
+
+	for i, v := range results {
+		results[i].Tags = v.Tags[1 : len(v.Tags)-1]
+	}
 
 	jsonString, _ := json.Marshal(results)
 	io.WriteString(w, string(jsonString))
@@ -38,10 +45,14 @@ func index(w http.ResponseWriter, r *http.Request) {
 
 func matchingFileTypeParam(db *gorm.DB, fileType string) *gorm.DB {
 	if len(fileType) > 0 {
-		return db.Table("chunks").Where("file_type = ?", fileType)
+		return db.Where("file_type = ?", fileType)
 	} else {
-		return db.Table("chunks")
+		return db
 	}
+}
+
+func matchingTags(db *gorm.DB, tags string) *gorm.DB {
+	return db.Where("chunks.tags @> ?", "{"+tags+"}")
 }
 
 func main() {
