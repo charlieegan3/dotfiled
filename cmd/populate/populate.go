@@ -126,10 +126,15 @@ func tagsForChunk(chunk string, fileType string) string {
 	re := regexp.MustCompile("\\W+")
 	cleanChunk := string(re.ReplaceAllLiteralString(chunk, " "))
 	cleanChunk = strings.TrimSpace(cleanChunk)
-	return "{" + strings.Join(strings.Split(cleanChunk, " "), ",") + "}"
+	return "{" + strings.Join(append(strings.Split(cleanChunk, " "), fileType), ",") + "}"
 }
 
 func validChunk(chunk string, file models.File) bool {
+	re := regexp.MustCompile("^\\W*$")
+	if re.MatchString(chunk) {
+		return false
+	}
+
 	reducedName := reduceNameToType(file.Name)
 	if reducedName == "vim" {
 		if chunk[0] == '"' {
