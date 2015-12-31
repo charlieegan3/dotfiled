@@ -13,6 +13,7 @@ type Chunk struct {
 	FileType string
 	Hash     string `sql:"index"`
 	Contents string `sql:"type:text"`
+	Tags     string `sql:"type:text[]"`
 }
 
 type FileChunk struct {

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"hash/fnv"
 	"os"
+	"regexp"
 	"strings"
 
 	"github.com/charlieegan3/dotfiled"
@@ -103,6 +104,7 @@ func createOrLinkChunk(chunk string, file models.File, db gorm.DB) models.Chunk 
 			FileType: reducedName,
 			Hash:     chunkHash,
 			Contents: chunk,
+			Tags:     tagsForChunk(chunk, reducedName),
 		}
 		db.Create(&currentChunk)
 	}
@@ -118,6 +120,13 @@ func reduceNameToType(name string) string {
 		//TODO
 		return name
 	}
+}
+
+func tagsForChunk(chunk string, fileType string) string {
+	re := regexp.MustCompile("\\W+")
+	cleanChunk := string(re.ReplaceAllLiteralString(chunk, " "))
+	cleanChunk = strings.TrimSpace(cleanChunk)
+	return "{" + strings.Join(strings.Split(cleanChunk, " "), ",") + "}"
 }
 
 func validChunk(chunk string, file models.File) bool {
