@@ -125,7 +125,7 @@ func reduceNameToType(name string) string {
 func tagsForChunk(chunk string, fileType string) string {
 	re := regexp.MustCompile("\\W+")
 	cleanChunk := string(re.ReplaceAllLiteralString(chunk, " "))
-	cleanChunk = strings.TrimSpace(cleanChunk)
+	cleanChunk = strings.ToLower(strings.TrimSpace(cleanChunk))
 	return "{" + strings.Join(append(strings.Split(cleanChunk, " "), fileType), ",") + "}"
 }
 
