@@ -30,3 +30,45 @@ div.container {
   background-color: #eee;
   padding-top: 10px;
 }
+
+.file-chunk {
+  margin: 10px;
+}
+
+.contents {
+  color: #f2f2f2;
+  padding: 5px;
+  margin: 0px;
+  font-family: "Share Tech Mono", monospace;
+  font-size: 1.2em;
+  text-align: center;
+  background-color: #333;
+}
+
+.details {
+  margin-top: 0px;
+}
+
+.file-type, .count {
+  font-size: 0.9em;
+  padding: 3px 6px 2px 6px;
+  width: 50%;
+  box-sizing: border-box;
+  border-bottom: 2px solid #333;
+}
+
+.count {
+  border-left: 1px solid #333;
+  border-right: 2px solid #333;
+  float: right;
+}
+
+.file-type {
+  border-right: 1px solid #333;
+  border-left: 2px solid #333;
+  float: left;
+  text-align: right;
+}
+
+.bash { background-color: #89e051; }
+.vim{ background-color: #199f4b; }

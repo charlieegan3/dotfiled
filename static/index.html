@@ -3,25 +3,17 @@
   <head>
       <meta charset="utf-8">
       <title>dotfiled</title>
+
       <link rel="stylesheet" href="/stylesheets/main.css">
+
+	  <script src="https://cdn.rawgit.com/riot/riot/master/riot+compiler.min.js"></script>
+	  <script src="main.js"></script>
+	  <script type="riot/tag" src="list.tag"></script>
   </head>
   <body>
       <div class="container">
         <h1>dotfiled</h1>
         <list></list>
       </div>
-
-	  <script type="riot/tag" src="list.tag"></script>
-	  <script src="https://cdn.rawgit.com/riot/riot/master/riot+compiler.min.js"></script>
-	  <script>
-        var request = new XMLHttpRequest();
-        request.open('GET', '/filechunks', true);
-        request.onload = function() {
-          if (request.status === 200) {
-            riot.mount('list', { fileChunks: JSON.parse(request.responseText) });
-          }
-        };
-        request.send();
-      </script>
   </body>
 </html>
