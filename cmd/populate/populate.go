@@ -60,8 +60,13 @@ func main() {
 		fmt.Printf("%v / %v\n", parts[len(parts)-2], parts[len(parts)-1])
 		repoData := repofiles.NewRepo(user, repo, "master")
 		repoData.List(credentials)
-		files := repoData.Files("bash", credentials)
+		var files []repofiles.File
+		files = append(files, repoData.Files("bashrc|bash_profile", credentials)...)
+		files = append(files, repoData.Files("zshrc", credentials)...)
 		files = append(files, repoData.Files("vimrc", credentials)...)
+		files = append(files, repoData.Files("emacs\\.el|init\\.el", credentials)...)
+		files = append(files, repoData.Files("gitconfig", credentials)...)
+		files = append(files, repoData.Files("gitignore", credentials)...)
 		for _, f := range files {
 			currentFile = models.File{Name: f.Name(), Contents: f.Contents}
 			db.Create(&currentFile)
@@ -117,8 +122,15 @@ func reduceNameToType(name string) string {
 		return "bash"
 	} else if strings.Contains(name, "vimrc") {
 		return "vim"
+	} else if strings.Contains(name, "zsh") {
+		return "zsh"
+	} else if strings.Contains(name, "emacs") || strings.Contains(name, ".el") {
+		return "emacs"
+	} else if strings.Contains(name, "gitignore") {
+		return "gitignore"
+	} else if strings.Contains(name, "gitconfig") {
+		return "gitconfig"
 	} else {
-		//TODO
 		return name
 	}
 }
@@ -145,7 +157,7 @@ func validChunk(chunk string, file models.File) bool {
 			return false
 		}
 	}
-	if reducedName == "bash" {
+	if reducedName == "bash" || reducedName == "zsh" {
 		if chunk[0] == '#' || chunk == "}" || chunk == "fi" {
 			return false
 		} else if chunk[len(chunk)-1] == '{' {
@@ -154,6 +166,20 @@ func validChunk(chunk string, file models.File) bool {
 			if chunk[0:4] == "elif" || chunk[0:2] == "if" || chunk[0:4] == "main" {
 				return false
 			}
+		}
+	}
+	if reducedName == "emacs" {
+		if len(chunk) > 1 {
+			if chunk[0:2] == ";;" {
+				return false
+			}
+		}
+	}
+	if reducedName == "gitconfig" {
+		if chunk[0] == '#' {
+			return false
+		} else if chunk[len(chunk)-1] == ']' {
+			return false
 		}
 	}
 	return true
