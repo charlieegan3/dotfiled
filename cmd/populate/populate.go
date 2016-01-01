@@ -75,6 +75,7 @@ func main() {
 	var currentFileChunk models.FileChunk
 	for _, f := range files {
 		for _, c := range filechunker.Chunk(f.Contents) {
+			c = formatChunk(c, f)
 			if validChunk(c, f) {
 				currentChunk = createOrLinkChunk(c, f, db)
 				currentFileChunk = models.FileChunk{
@@ -140,15 +141,33 @@ func validChunk(chunk string, file models.File) bool {
 		if chunk[0] == '"' {
 			return false
 		}
+		if chunk == "endif" || chunk == "endfunction" {
+			return false
+		}
 	}
 	if reducedName == "bash" {
 		if chunk[0] == '#' || chunk == "}" || chunk == "fi" {
 			return false
+		} else if chunk[len(chunk)-1] == '{' {
+			return false
 		} else if len(chunk) > 3 {
-			if chunk[0:4] == "elif" || chunk[0:4] == "main" {
+			if chunk[0:4] == "elif" || chunk[0:2] == "if" || chunk[0:4] == "main" {
 				return false
 			}
 		}
 	}
 	return true
+}
+
+func formatChunk(chunk string, file models.File) string {
+	reducedName := reduceNameToType(file.Name)
+	if reducedName == "bash" {
+		re := regexp.MustCompile("#(\\w|\\s||[^\"';])*$")
+		chunk = re.ReplaceAllLiteralString(chunk, "")
+		chunk = strings.TrimSpace(chunk)
+		if len(chunk) > 0 && chunk[len(chunk)-1] == ';' {
+			chunk = chunk[0 : len(chunk)-1]
+		}
+	}
+	return chunk
 }
