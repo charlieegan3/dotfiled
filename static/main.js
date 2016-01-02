@@ -13,7 +13,7 @@ DOMReady(function () {
 
 function loadFileChunks(tagString) {
   var request = new XMLHttpRequest();
-  request.open('GET', '/filechunks?tags=' + tagString, true);
+  request.open('GET', '/chunks?tags=' + tagString, true);
   request.onload = function() {
     if (request.status === 200) {
       riot.mount('list', { fileChunks: JSON.parse(request.responseText) });

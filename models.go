@@ -10,10 +10,11 @@ type File struct {
 
 type Chunk struct {
 	gorm.Model
-	FileType string
-	Hash     string `sql:"index"`
-	Contents string `sql:"type:text"`
-	Tags     string `sql:"type:text[]"`
+	FileType   string
+	Hash       string `sql:"index"`
+	Contents   string `sql:"type:text"`
+	Tags       string `sql:"type:text[]"`
+	FileChunks []FileChunk
 }
 
 type FileChunk struct {
