@@ -79,4 +79,8 @@ div.container {
 }
 
 .bash { background-color: #89e051; }
-.vim{ background-color: #199f4b; }
+.zsh { background-color: #c5d928; }
+.vim { background-color: #199f4b; }
+.emacs { background-color: #a50606; }
+.gitignore { background-color: #f54d27; }
+.gitconfig { background-color: #febda5; }
