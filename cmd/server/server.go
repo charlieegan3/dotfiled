@@ -31,8 +31,9 @@ func index(w http.ResponseWriter, r *http.Request) {
 	tempDb.Select("chunks.id, chunks.contents, chunks.file_type, chunks.tags, count(file_chunks.id)").
 		Joins("inner join file_chunks on file_chunks.chunk_id = chunks.id").
 		Group("chunks.id").
-		Having("count(file_chunks.id) > 3").
+		Having("count(file_chunks.id) > 2").
 		Order("count(file_chunks.id) desc").
+		Limit(100).
 		Scan(&results)
 
 	for i, v := range results {
