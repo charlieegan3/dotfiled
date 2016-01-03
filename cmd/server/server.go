@@ -36,6 +36,18 @@ func ChunksIndexHandler(w http.ResponseWriter, r *http.Request) {
 		Limit(100).
 		Scan(&results)
 
+	if len(results) == 0 {
+		db.Table("chunks").
+			Select("chunks.id, chunks.contents, chunks.file_type, chunks.tags, count(file_chunks.id)").
+			Joins("inner join file_chunks on file_chunks.chunk_id = chunks.id").
+			Where("chunks.contents LIKE ?", "%"+r.URL.Query().Get("tags")+"%").
+			Group("chunks.id").
+			Having("count(file_chunks.id) > 2").
+			Order("count(file_chunks.id) desc").
+			Limit(100).
+			Scan(&results)
+	}
+
 	for i, v := range results {
 		results[i].Tags = v.Tags[1 : len(v.Tags)-1]
 	}
