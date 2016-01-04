@@ -14,7 +14,7 @@ import (
 
 var db gorm.DB
 
-func ChunksIndexHandler(w http.ResponseWriter, r *http.Request) {
+func ApiChunksIndexHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	type Result struct {
@@ -56,9 +56,9 @@ func ChunksIndexHandler(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, string(jsonString))
 }
 
-func ChunkShowHandler(w http.ResponseWriter, r *http.Request) {
+func ApiChunkShowHandler(w http.ResponseWriter, r *http.Request) {
 	var chunk models.Chunk
-	db.First(&chunk, r.URL.Path[len("/chunks/"):])
+	db.First(&chunk, r.URL.Path[len("/api/chunks/"):])
 	db.Model(&chunk).Related(&chunk.FileChunks)
 	jsonString, _ := json.Marshal(chunk)
 	io.WriteString(w, string(jsonString))
@@ -88,7 +88,7 @@ func main() {
 	fs := http.FileServer(http.Dir("static"))
 
 	http.Handle("/", fs)
-	http.HandleFunc("/chunks", ChunksIndexHandler)
-	http.HandleFunc("/chunks/", ChunkShowHandler)
+	http.HandleFunc("/api/chunks", ApiChunksIndexHandler)
+	http.HandleFunc("/api/chunks/", ApiChunkShowHandler)
 	http.ListenAndServe(":"+os.Args[1], nil)
 }
