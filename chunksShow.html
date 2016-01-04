@@ -7,37 +7,25 @@
       <link rel="stylesheet" href="/stylesheets/main.css">
 
 	  <script src="https://cdn.rawgit.com/riot/riot/master/riot+compiler.min.js"></script>
-	  <script type="riot/tag" src="/list.tag"></script>
+	  <script type="riot/tag" src="/chunk.tag"></script>
       <script>
         var DOMReady = function(a,b,c){b=document,c='addEventListener';b[c]?b[c]('DOMContentLoaded',a):window.attachEvent('onload',a)}
-
-        function loadFileChunks(tagString) {
+        DOMReady(function () {
           var request = new XMLHttpRequest();
-          request.open('GET', '/api/chunks?tags=' + tagString, true);
+          request.open('GET', '/api/chunks/' + "{{.ID}}", true);
           request.onload = function() {
             if (request.status === 200) {
-              riot.mount('list', { fileChunks: JSON.parse(request.responseText) });
+              riot.mount('chunk', { chunk: JSON.parse(request.responseText) });
             }
           };
           request.send();
-        }
-
-        DOMReady(function () {
-          loadFileChunks("");
-
-          var id_box = document.getElementById("query");
-          id_box.onkeyup = function() {
-            var tagString = this.value.replace(/^\W+|\W+$/, "").replace(/\W+/g, ",");
-            loadFileChunks(tagString);
-          }
         });
       </script>
   </head>
   <body>
       <div class="container">
         <h1>dotfiled</h1>
-        <input id="query" type="text" placeholder="try 'vim set ...'"/>
-        <list></list>
+        <chunk></chunk>
       </div>
   </body>
 </html>

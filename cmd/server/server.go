@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"text/template"
 
 	"github.com/charlieegan3/dotfiled"
 	"github.com/jinzhu/gorm"
@@ -64,6 +65,15 @@ func ApiChunkShowHandler(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, string(jsonString))
 }
 
+func ChunksShowHandler(w http.ResponseWriter, r *http.Request) {
+	id := r.URL.Path[len("/chunks/"):]
+	t, _ := template.ParseFiles("chunksShow.html")
+	type ID struct {
+		ID string
+	}
+	t.Execute(w, ID{ID: id})
+}
+
 func matchingFileTypeParam(db *gorm.DB, fileType string) *gorm.DB {
 	if len(fileType) > 0 {
 		return db.Where("file_type = ?", fileType)
@@ -88,6 +98,7 @@ func main() {
 	fs := http.FileServer(http.Dir("static"))
 
 	http.Handle("/", fs)
+	http.HandleFunc("/chunks/", ChunksShowHandler)
 	http.HandleFunc("/api/chunks", ApiChunksIndexHandler)
 	http.HandleFunc("/api/chunks/", ApiChunkShowHandler)
 	http.ListenAndServe(":"+os.Args[1], nil)
