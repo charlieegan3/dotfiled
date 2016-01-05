@@ -175,7 +175,7 @@ func validChunk(chunk string, file models.File) bool {
 			}
 		}
 	}
-	if reducedName == "gitconfig" {
+	if reducedName == "gitconfig" || reducedName == "gitignore" {
 		if chunk[0] == '#' {
 			return false
 		} else if chunk[len(chunk)-1] == ']' {
