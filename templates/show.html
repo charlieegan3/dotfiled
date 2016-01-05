@@ -1,0 +1,19 @@
+{{define "head"}}
+  <script type="riot/tag" src="/static/chunk.tag"></script>
+  <script>
+    var DOMReady = function(a,b,c){b=document,c='addEventListener';b[c]?b[c]('DOMContentLoaded',a):window.attachEvent('onload',a)}
+    DOMReady(function () {
+      var request = new XMLHttpRequest();
+      request.open('GET', '/api/chunks/' + "{{.ID}}", true);
+      request.onload = function() {
+        if (request.status === 200) {
+          riot.mount('chunk', { chunk: JSON.parse(request.responseText) });
+        }
+      };
+      request.send();
+    });
+  </script>
+{{end}}
+{{define "body"}}
+  <chunk></chunk>
+{{end}}

@@ -1,0 +1,31 @@
+{{define "head"}}
+  <script type="riot/tag" src="/static/list.tag"></script>
+  <script>
+    var DOMReady = function(a,b,c){b=document,c='addEventListener';b[c]?b[c]('DOMContentLoaded',a):window.attachEvent('onload',a)}
+
+    function loadFileChunks(tagString) {
+      var request = new XMLHttpRequest();
+      request.open('GET', '/api/chunks?tags=' + tagString, true);
+      request.onload = function() {
+        if (request.status === 200) {
+          riot.mount('list', { fileChunks: JSON.parse(request.responseText) });
+        }
+      };
+      request.send();
+    }
+
+    DOMReady(function () {
+      loadFileChunks("");
+
+      var id_box = document.getElementById("query");
+      id_box.onkeyup = function() {
+        var tagString = this.value.replace(/^\W+|\W+$/, "").replace(/\W+/g, ",");
+        loadFileChunks(tagString);
+      }
+    });
+  </script>
+{{end}}
+{{define "body"}}
+  <input id="query" type="text" placeholder="try 'vim set ...'"/>
+  <list></list>
+{{end}}

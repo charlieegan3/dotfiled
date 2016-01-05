@@ -57,6 +57,12 @@ func ApiChunksIndexHandler(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, string(jsonString))
 }
 
+func ChunksIndexHandler(w http.ResponseWriter, r *http.Request) {
+	template.
+		Must(template.ParseFiles("templates/index.html", "templates/base.html")).
+		ExecuteTemplate(w, "base", nil)
+}
+
 func ApiChunkShowHandler(w http.ResponseWriter, r *http.Request) {
 	var chunk models.Chunk
 	db.First(&chunk, r.URL.Path[len("/api/chunks/"):])
@@ -66,12 +72,10 @@ func ApiChunkShowHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func ChunksShowHandler(w http.ResponseWriter, r *http.Request) {
-	id := r.URL.Path[len("/chunks/"):]
-	t, _ := template.ParseFiles("chunksShow.html")
-	type ID struct {
-		ID string
-	}
-	t.Execute(w, ID{ID: id})
+	data := struct{ ID string }{r.URL.Path[len("/chunks/"):]}
+	template.
+		Must(template.ParseFiles("templates/show.html", "templates/base.html")).
+		ExecuteTemplate(w, "base", data)
 }
 
 func matchingFileTypeParam(db *gorm.DB, fileType string) *gorm.DB {
@@ -97,7 +101,8 @@ func main() {
 	db.AutoMigrate(&models.File{}, &models.Chunk{}, &models.FileChunk{})
 	fs := http.FileServer(http.Dir("static"))
 
-	http.Handle("/", fs)
+	http.Handle("/static/", http.StripPrefix("/static", fs))
+	http.HandleFunc("/", ChunksIndexHandler)
 	http.HandleFunc("/chunks/", ChunksShowHandler)
 	http.HandleFunc("/api/chunks", ApiChunksIndexHandler)
 	http.HandleFunc("/api/chunks/", ApiChunkShowHandler)
