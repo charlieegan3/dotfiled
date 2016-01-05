@@ -45,14 +45,14 @@ func main() {
 	}
 
 	db, _ := gorm.Open("postgres", os.Getenv("DATABASE_URL"))
-	db.DropTable(&models.File{}, &models.Chunk{}, &models.FileChunk{})
-	db.AutoMigrate(&models.File{}, &models.Chunk{}, &models.FileChunk{})
+	db.DropTable(&dotfiled.File{}, &dotfiled.Chunk{}, &dotfiled.FileChunk{})
+	db.AutoMigrate(&dotfiled.File{}, &dotfiled.Chunk{}, &dotfiled.FileChunk{})
 	credentials := repofiles.Credentials{
 		User:  os.Getenv("GITHUB_USER"),
 		Token: os.Getenv("GITHUB_TOKEN"),
 	}
 
-	var currentFile models.File
+	var currentFile dotfiled.File
 	for _, url := range dotfileRepos {
 		parts := strings.Split(url, "/")
 		repo := parts[len(parts)-1]
@@ -64,7 +64,7 @@ func main() {
 		pattern := "bashrc|bash_profile|zshrc|vimrc|emacs\\.el|init\\.el|gitignore|gitconfig"
 		files = append(files, repoData.Files(pattern, credentials)...)
 		for _, f := range files {
-			currentFile = models.File{
+			currentFile = dotfiled.File{
 				Name:     f.Name(),
 				Contents: f.Contents,
 				Repo:     url,
@@ -73,17 +73,17 @@ func main() {
 		}
 	}
 
-	var files []models.File
+	var files []dotfiled.File
 	db.Find(&files)
 	filechunker := filechunker.NewFileChunker(3, "\t")
-	var currentChunk models.Chunk
-	var currentFileChunk models.FileChunk
+	var currentChunk dotfiled.Chunk
+	var currentFileChunk dotfiled.FileChunk
 	for _, f := range files {
 		for _, c := range filechunker.Chunk(f.Contents) {
 			c = formatChunk(c, f)
 			if validChunk(c, f) {
 				currentChunk = createOrLinkChunk(c, f, db)
-				currentFileChunk = models.FileChunk{
+				currentFileChunk = dotfiled.FileChunk{
 					FileID:  f.ID,
 					ChunkID: currentChunk.ID,
 				}
@@ -99,14 +99,14 @@ func hashChunk(chunk string) string {
 	return fmt.Sprintf("%v", h.Sum32())
 }
 
-func createOrLinkChunk(chunk string, file models.File, db gorm.DB) models.Chunk {
+func createOrLinkChunk(chunk string, file dotfiled.File, db gorm.DB) dotfiled.Chunk {
 	reducedName := reduceNameToType(file.Name)
-	currentChunk := models.Chunk{}
+	currentChunk := dotfiled.Chunk{}
 	chunkHash := hashChunk(chunk)
 	db.Where("hash = ? and file_type = ?", chunkHash, reducedName).First(&currentChunk)
 
 	if currentChunk.ID == 0 {
-		currentChunk = models.Chunk{
+		currentChunk = dotfiled.Chunk{
 			FileType: reducedName,
 			Hash:     chunkHash,
 			Contents: chunk,
@@ -142,7 +142,7 @@ func tagsForChunk(chunk string, fileType string) string {
 	return "{" + strings.Join(append(strings.Split(cleanChunk, " "), fileType), ",") + "}"
 }
 
-func validChunk(chunk string, file models.File) bool {
+func validChunk(chunk string, file dotfiled.File) bool {
 	re := regexp.MustCompile("^\\W*$")
 	if re.MatchString(chunk) {
 		return false
@@ -185,7 +185,7 @@ func validChunk(chunk string, file models.File) bool {
 	return true
 }
 
-func formatChunk(chunk string, file models.File) string {
+func formatChunk(chunk string, file dotfiled.File) string {
 	reducedName := reduceNameToType(file.Name)
 	if reducedName == "bash" {
 		re := regexp.MustCompile("#(\\w|\\s||[^\"';])*$")

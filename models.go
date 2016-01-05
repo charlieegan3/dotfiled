@@ -1,4 +1,4 @@
-package models
+package dotfiled
 
 import "github.com/jinzhu/gorm"
 

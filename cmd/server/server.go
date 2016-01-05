@@ -15,60 +15,10 @@ import (
 
 var db gorm.DB
 
-func ApiChunksIndexHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
-	type Result struct {
-		ID       uint
-		Contents string
-		FileType string
-		Tags     string
-		Count    uint
-	}
-	var results []Result
-	tempDb := db.Table("chunks")
-	tempDb = matchingFileTypeParam(tempDb, r.URL.Query().Get("file_type"))
-	tempDb = matchingTags(tempDb, r.URL.Query().Get("tags"))
-	tempDb.Select("chunks.id, chunks.contents, chunks.file_type, chunks.tags, count(file_chunks.id)").
-		Joins("inner join file_chunks on file_chunks.chunk_id = chunks.id").
-		Group("chunks.id").
-		Having("count(file_chunks.id) > 2").
-		Order("count(file_chunks.id) desc").
-		Limit(100).
-		Scan(&results)
-
-	if len(results) == 0 {
-		db.Table("chunks").
-			Select("chunks.id, chunks.contents, chunks.file_type, chunks.tags, count(file_chunks.id)").
-			Joins("inner join file_chunks on file_chunks.chunk_id = chunks.id").
-			Where("chunks.contents LIKE ?", "%"+r.URL.Query().Get("tags")+"%").
-			Group("chunks.id").
-			Having("count(file_chunks.id) > 2").
-			Order("count(file_chunks.id) desc").
-			Limit(100).
-			Scan(&results)
-	}
-
-	for i, v := range results {
-		results[i].Tags = v.Tags[1 : len(v.Tags)-1]
-	}
-
-	jsonString, _ := json.Marshal(results)
-	io.WriteString(w, string(jsonString))
-}
-
 func ChunksIndexHandler(w http.ResponseWriter, r *http.Request) {
 	template.
 		Must(template.ParseFiles("templates/index.html", "templates/base.html")).
 		ExecuteTemplate(w, "base", nil)
-}
-
-func ApiChunkShowHandler(w http.ResponseWriter, r *http.Request) {
-	var chunk models.Chunk
-	db.First(&chunk, r.URL.Path[len("/api/chunks/"):])
-	db.Model(&chunk).Association("Files").Find(&chunk.Files)
-	jsonString, _ := json.Marshal(chunk)
-	io.WriteString(w, string(jsonString))
 }
 
 func ChunksShowHandler(w http.ResponseWriter, r *http.Request) {
@@ -78,16 +28,18 @@ func ChunksShowHandler(w http.ResponseWriter, r *http.Request) {
 		ExecuteTemplate(w, "base", data)
 }
 
-func matchingFileTypeParam(db *gorm.DB, fileType string) *gorm.DB {
-	if len(fileType) > 0 {
-		return db.Where("file_type = ?", fileType)
-	} else {
-		return db
-	}
+func ApiChunksIndexHandler(w http.ResponseWriter, r *http.Request) {
+	results := dotfiled.ChunksForQuery(
+		&db, r.URL.Query().Get("tags"), r.URL.Query().Get("file_type"))
+
+	jsonString, _ := json.Marshal(results)
+	io.WriteString(w, string(jsonString))
 }
 
-func matchingTags(db *gorm.DB, tags string) *gorm.DB {
-	return db.Where("chunks.tags @> ?", "{"+tags+"}")
+func ApiChunkShowHandler(w http.ResponseWriter, r *http.Request) {
+	result := dotfiled.ChunkForID(&db, r.URL.Path[len("/api/chunks/"):])
+	jsonString, _ := json.Marshal(result)
+	io.WriteString(w, string(jsonString))
 }
 
 func main() {
@@ -98,7 +50,7 @@ func main() {
 	}
 
 	db, _ = gorm.Open("postgres", os.Getenv("DATABASE_URL"))
-	db.AutoMigrate(&models.File{}, &models.Chunk{}, &models.FileChunk{})
+	db.AutoMigrate(&dotfiled.File{}, &dotfiled.Chunk{}, &dotfiled.FileChunk{})
 	fs := http.FileServer(http.Dir("static"))
 
 	http.Handle("/static/", http.StripPrefix("/static", fs))
