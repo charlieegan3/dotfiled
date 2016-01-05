@@ -89,3 +89,14 @@ div.container {
 .emacs { background-color: #a50606; }
 .gitignore { background-color: #f54d27; }
 .gitconfig { background-color: #febda5; }
+
+.chunk-file a {
+  text-decoration: underline;
+  vertical-align: middle;
+}
+
+.chunk-file span {
+  color: grey;
+  font-size: 0.8em;
+  vertical-align: middle;
+}

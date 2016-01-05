@@ -61,14 +61,14 @@ func main() {
 		repoData := repofiles.NewRepo(user, repo, "master")
 		repoData.List(credentials)
 		var files []repofiles.File
-		files = append(files, repoData.Files("bashrc|bash_profile", credentials)...)
-		files = append(files, repoData.Files("zshrc", credentials)...)
-		files = append(files, repoData.Files("vimrc", credentials)...)
-		files = append(files, repoData.Files("emacs\\.el|init\\.el", credentials)...)
-		files = append(files, repoData.Files("gitconfig", credentials)...)
-		files = append(files, repoData.Files("gitignore", credentials)...)
+		pattern := "bashrc|bash_profile|zshrc|vimrc|emacs\\.el|init\\.el|gitignore|gitconfig"
+		files = append(files, repoData.Files(pattern, credentials)...)
 		for _, f := range files {
-			currentFile = models.File{Name: f.Name(), Contents: f.Contents}
+			currentFile = models.File{
+				Name:     f.Name(),
+				Contents: f.Contents,
+				Repo:     url,
+			}
 			db.Create(&currentFile)
 		}
 	}

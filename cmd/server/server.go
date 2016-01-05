@@ -60,7 +60,7 @@ func ApiChunksIndexHandler(w http.ResponseWriter, r *http.Request) {
 func ApiChunkShowHandler(w http.ResponseWriter, r *http.Request) {
 	var chunk models.Chunk
 	db.First(&chunk, r.URL.Path[len("/api/chunks/"):])
-	db.Model(&chunk).Related(&chunk.FileChunks)
+	db.Model(&chunk).Association("Files").Find(&chunk.Files)
 	jsonString, _ := json.Marshal(chunk)
 	io.WriteString(w, string(jsonString))
 }
