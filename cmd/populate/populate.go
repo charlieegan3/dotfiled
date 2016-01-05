@@ -42,6 +42,22 @@ func main() {
 		"https://github.com/tpope/tpope",
 		"https://github.com/jferris/config_files",
 		"https://github.com/mitsuhiko/dotfiles",
+		"https://github.com/durdn/cfg",
+		"https://github.com/cypher/dotfiles",
+		"https://github.com/henrik/dotfiles",
+		"https://github.com/tomasr/dotfiles",
+		"https://github.com/zanshin/dotfiles",
+		"https://github.com/junegunn/dotfiles",
+		"https://github.com/joshuaclayton/dotfiles",
+		"https://github.com/matthewmccullough/dotfiles",
+		"https://github.com/shawncplus/dotfiles",
+		"https://github.com/whiteinge/dotfiles",
+		"https://github.com/michaeljsmalley/dotfiles",
+		"https://github.com/mscoutermarsh/dotfiles",
+		"https://github.com/atomantic/dotfiles",
+		"https://github.com/tangledhelix/dotfiles",
+		"https://github.com/milkbikis/dotfiles-mac",
+		"https://github.com/technomancy/dotfiles",
 	}
 
 	db, _ := gorm.Open("postgres", os.Getenv("DATABASE_URL"))
