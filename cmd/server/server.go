@@ -15,20 +15,20 @@ import (
 
 var db gorm.DB
 
-func ChunksIndexHandler(w http.ResponseWriter, r *http.Request) {
+func indexHandler(w http.ResponseWriter, r *http.Request) {
 	template.
 		Must(template.ParseFiles("templates/index.html", "templates/base.html")).
 		ExecuteTemplate(w, "base", nil)
 }
 
-func ChunksShowHandler(w http.ResponseWriter, r *http.Request) {
+func showHandler(w http.ResponseWriter, r *http.Request) {
 	data := struct{ ID string }{r.URL.Path[len("/chunks/"):]}
 	template.
 		Must(template.ParseFiles("templates/show.html", "templates/base.html")).
 		ExecuteTemplate(w, "base", data)
 }
 
-func ApiChunksIndexHandler(w http.ResponseWriter, r *http.Request) {
+func ApiIndexHandler(w http.ResponseWriter, r *http.Request) {
 	results := dotfiled.ChunksForQuery(
 		&db, r.URL.Query().Get("tags"), r.URL.Query().Get("file_type"))
 
@@ -36,7 +36,7 @@ func ApiChunksIndexHandler(w http.ResponseWriter, r *http.Request) {
 	io.WriteString(w, string(jsonString))
 }
 
-func ApiChunkShowHandler(w http.ResponseWriter, r *http.Request) {
+func ApiShowHandler(w http.ResponseWriter, r *http.Request) {
 	result := dotfiled.ChunkForID(&db, r.URL.Path[len("/api/chunks/"):])
 	jsonString, _ := json.Marshal(result)
 	io.WriteString(w, string(jsonString))
@@ -54,9 +54,9 @@ func main() {
 	fs := http.FileServer(http.Dir("static"))
 
 	http.Handle("/static/", http.StripPrefix("/static", fs))
-	http.HandleFunc("/", ChunksIndexHandler)
-	http.HandleFunc("/chunks/", ChunksShowHandler)
-	http.HandleFunc("/api/chunks", ApiChunksIndexHandler)
-	http.HandleFunc("/api/chunks/", ApiChunkShowHandler)
+	http.HandleFunc("/", indexHandler)
+	http.HandleFunc("/chunks/", showHandler)
+	http.HandleFunc("/api/chunks", ApiIndexHandler)
+	http.HandleFunc("/api/chunks/", ApiShowHandler)
 	http.ListenAndServe(":"+os.Args[1], nil)
 }
