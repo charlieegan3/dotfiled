@@ -1,10 +1,12 @@
-package dotfiled
+package chunks
 
 import (
 	"fmt"
 	"hash/fnv"
 	"regexp"
 	"strings"
+
+	"github.com/charlieegan3/dotfiled"
 )
 
 func HashChunk(chunk string) string {
@@ -38,7 +40,7 @@ func TagsForChunk(chunk string, fileType string) string {
 	return "{" + strings.Join(append(strings.Split(cleanChunk, " "), fileType), ",") + "}"
 }
 
-func ValidChunk(chunk string, file File) bool {
+func ValidChunk(chunk string, file models.File) bool {
 	re := regexp.MustCompile("^\\W*$")
 	if re.MatchString(chunk) {
 		return false
@@ -81,7 +83,7 @@ func ValidChunk(chunk string, file File) bool {
 	return true
 }
 
-func FormatChunk(chunk string, file File) string {
+func FormatChunk(chunk string, file models.File) string {
 	reducedName := ReduceNameToType(file.Name)
 	if reducedName == "bash" {
 		re := regexp.MustCompile("#(\\w|\\s||[^\"';])*$")

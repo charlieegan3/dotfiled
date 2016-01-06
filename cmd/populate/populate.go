@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/charlieegan3/dotfiled"
+	"github.com/charlieegan3/dotfiled/chunks"
 	"github.com/charlieegan3/filechunker"
 	"github.com/charlieegan3/repofiles"
 	"github.com/jinzhu/gorm"
@@ -62,8 +63,8 @@ func main() {
 	}
 
 	db, _ = gorm.Open("postgres", os.Getenv("DATABASE_URL"))
-	db.DropTable(&dotfiled.File{}, &dotfiled.Chunk{}, &dotfiled.FileChunk{})
-	db.AutoMigrate(&dotfiled.File{}, &dotfiled.Chunk{}, &dotfiled.FileChunk{})
+	db.DropTable(&models.File{}, &models.Chunk{}, &models.FileChunk{})
+	db.AutoMigrate(&models.File{}, &models.Chunk{}, &models.FileChunk{})
 	credentials = repofiles.Credentials{
 		User:  os.Getenv("GITHUB_USER"),
 		Token: os.Getenv("GITHUB_TOKEN"),
@@ -72,23 +73,23 @@ func main() {
 	pattern := "bashrc|bash_profile|zshrc|vimrc|emacs\\.el|init\\.el|gitignore|gitconfig"
 	createMatchingFilesFromRepos(pattern, dotfileRepos)
 
-	var files []dotfiled.File
+	var files []models.File
 	db.Find(&files)
 	createFileChunksForFiles(files)
 }
 
-func createOrLinkChunk(chunk string, file dotfiled.File, db gorm.DB) dotfiled.Chunk {
-	reducedName := dotfiled.ReduceNameToType(file.Name)
-	currentChunk := dotfiled.Chunk{}
-	chunkHash := dotfiled.HashChunk(chunk)
+func createOrLinkChunk(chunk string, file models.File, db gorm.DB) models.Chunk {
+	reducedName := chunks.ReduceNameToType(file.Name)
+	currentChunk := models.Chunk{}
+	chunkHash := chunks.HashChunk(chunk)
 	db.Where("hash = ? and file_type = ?", chunkHash, reducedName).First(&currentChunk)
 
 	if currentChunk.ID == 0 {
-		currentChunk = dotfiled.Chunk{
+		currentChunk = models.Chunk{
 			FileType: reducedName,
 			Hash:     chunkHash,
 			Contents: chunk,
-			Tags:     dotfiled.TagsForChunk(chunk, reducedName),
+			Tags:     chunks.TagsForChunk(chunk, reducedName),
 		}
 		db.Create(&currentChunk)
 	}
@@ -96,7 +97,7 @@ func createOrLinkChunk(chunk string, file dotfiled.File, db gorm.DB) dotfiled.Ch
 }
 
 func createMatchingFilesFromRepos(pattern string, repos []string) {
-	var currentFile dotfiled.File
+	var currentFile models.File
 	for _, url := range repos {
 		parts := strings.Split(url, "/")
 		repo := parts[len(parts)-1]
@@ -107,7 +108,7 @@ func createMatchingFilesFromRepos(pattern string, repos []string) {
 		pattern := "bashrc|bash_profile|zshrc|vimrc|emacs\\.el|init\\.el|gitignore|gitconfig"
 		files := repoData.Files(pattern, credentials)
 		for i := 0; i < len(files); i++ {
-			currentFile = dotfiled.File{
+			currentFile = models.File{
 				Name:     files[i].Name(),
 				Contents: files[i].Contents,
 				Repo:     url,
@@ -117,16 +118,16 @@ func createMatchingFilesFromRepos(pattern string, repos []string) {
 	}
 }
 
-func createFileChunksForFiles(files []dotfiled.File) {
+func createFileChunksForFiles(files []models.File) {
 	filechunker := filechunker.NewFileChunker(3, "\t")
-	var currentChunk dotfiled.Chunk
-	var currentFileChunk dotfiled.FileChunk
+	var currentChunk models.Chunk
+	var currentFileChunk models.FileChunk
 	for _, f := range files {
 		for _, c := range filechunker.Chunk(f.Contents) {
-			c = dotfiled.FormatChunk(c, f)
-			if dotfiled.ValidChunk(c, f) {
+			c = chunks.FormatChunk(c, f)
+			if chunks.ValidChunk(c, f) {
 				currentChunk = createOrLinkChunk(c, f, db)
-				currentFileChunk = dotfiled.FileChunk{
+				currentFileChunk = models.FileChunk{
 					FileID:  f.ID,
 					ChunkID: currentChunk.ID,
 				}

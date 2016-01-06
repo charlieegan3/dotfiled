@@ -9,6 +9,7 @@ import (
 	"text/template"
 
 	"github.com/charlieegan3/dotfiled"
+	"github.com/charlieegan3/dotfiled/queries"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 )
@@ -29,7 +30,7 @@ func showHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func ApiIndexHandler(w http.ResponseWriter, r *http.Request) {
-	results := dotfiled.ChunksForQuery(
+	results := queries.ChunksForQuery(
 		&db, r.URL.Query().Get("tags"), r.URL.Query().Get("file_type"))
 
 	jsonString, _ := json.Marshal(results)
@@ -37,7 +38,7 @@ func ApiIndexHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func ApiShowHandler(w http.ResponseWriter, r *http.Request) {
-	result := dotfiled.ChunkForID(&db, r.URL.Path[len("/api/chunks/"):])
+	result := queries.ChunkForID(&db, r.URL.Path[len("/api/chunks/"):])
 	jsonString, _ := json.Marshal(result)
 	io.WriteString(w, string(jsonString))
 }
@@ -50,7 +51,7 @@ func main() {
 	}
 
 	db, _ = gorm.Open("postgres", os.Getenv("DATABASE_URL"))
-	db.AutoMigrate(&dotfiled.File{}, &dotfiled.Chunk{}, &dotfiled.FileChunk{})
+	db.AutoMigrate(&models.File{}, &models.Chunk{}, &models.FileChunk{})
 	fs := http.FileServer(http.Dir("static"))
 
 	http.Handle("/static/", http.StripPrefix("/static", fs))

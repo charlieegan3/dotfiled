@@ -1,6 +1,9 @@
-package dotfiled
+package queries
 
-import "github.com/jinzhu/gorm"
+import (
+	"github.com/charlieegan3/dotfiled"
+	"github.com/jinzhu/gorm"
+)
 
 type Result struct {
 	ID       uint
@@ -42,8 +45,8 @@ func ChunksForQuery(db *gorm.DB, query string, fileType string) []Result {
 	return results
 }
 
-func ChunkForID(db *gorm.DB, id string) Chunk {
-	var chunk Chunk
+func ChunkForID(db *gorm.DB, id string) models.Chunk {
+	var chunk models.Chunk
 	db.First(&chunk, id)
 	db.Model(&chunk).Association("Files").Find(&chunk.Files)
 	return chunk
