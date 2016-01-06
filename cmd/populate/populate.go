@@ -2,9 +2,7 @@ package main
 
 import (
 	"fmt"
-	"hash/fnv"
 	"os"
-	"regexp"
 	"strings"
 
 	"github.com/charlieegan3/dotfiled"
@@ -13,6 +11,9 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 )
+
+var credentials repofiles.Credentials
+var db gorm.DB
 
 func main() {
 	dotfileRepos := []string{
@@ -60,44 +61,70 @@ func main() {
 		"https://github.com/technomancy/dotfiles",
 	}
 
-	db, _ := gorm.Open("postgres", os.Getenv("DATABASE_URL"))
+	db, _ = gorm.Open("postgres", os.Getenv("DATABASE_URL"))
 	db.DropTable(&dotfiled.File{}, &dotfiled.Chunk{}, &dotfiled.FileChunk{})
 	db.AutoMigrate(&dotfiled.File{}, &dotfiled.Chunk{}, &dotfiled.FileChunk{})
-	credentials := repofiles.Credentials{
+	credentials = repofiles.Credentials{
 		User:  os.Getenv("GITHUB_USER"),
 		Token: os.Getenv("GITHUB_TOKEN"),
 	}
 
+	pattern := "bashrc|bash_profile|zshrc|vimrc|emacs\\.el|init\\.el|gitignore|gitconfig"
+	createMatchingFilesFromRepos(pattern, dotfileRepos)
+
+	var files []dotfiled.File
+	db.Find(&files)
+	createFileChunksForFiles(files)
+}
+
+func createOrLinkChunk(chunk string, file dotfiled.File, db gorm.DB) dotfiled.Chunk {
+	reducedName := dotfiled.ReduceNameToType(file.Name)
+	currentChunk := dotfiled.Chunk{}
+	chunkHash := dotfiled.HashChunk(chunk)
+	db.Where("hash = ? and file_type = ?", chunkHash, reducedName).First(&currentChunk)
+
+	if currentChunk.ID == 0 {
+		currentChunk = dotfiled.Chunk{
+			FileType: reducedName,
+			Hash:     chunkHash,
+			Contents: chunk,
+			Tags:     dotfiled.TagsForChunk(chunk, reducedName),
+		}
+		db.Create(&currentChunk)
+	}
+	return currentChunk
+}
+
+func createMatchingFilesFromRepos(pattern string, repos []string) {
 	var currentFile dotfiled.File
-	for _, url := range dotfileRepos {
+	for _, url := range repos {
 		parts := strings.Split(url, "/")
 		repo := parts[len(parts)-1]
 		user := parts[len(parts)-2]
 		fmt.Printf("%v / %v\n", parts[len(parts)-2], parts[len(parts)-1])
 		repoData := repofiles.NewRepo(user, repo, "master")
 		repoData.List(credentials)
-		var files []repofiles.File
 		pattern := "bashrc|bash_profile|zshrc|vimrc|emacs\\.el|init\\.el|gitignore|gitconfig"
-		files = append(files, repoData.Files(pattern, credentials)...)
-		for _, f := range files {
+		files := repoData.Files(pattern, credentials)
+		for i := 0; i < len(files); i++ {
 			currentFile = dotfiled.File{
-				Name:     f.Name(),
-				Contents: f.Contents,
+				Name:     files[i].Name(),
+				Contents: files[i].Contents,
 				Repo:     url,
 			}
 			db.Create(&currentFile)
 		}
 	}
+}
 
-	var files []dotfiled.File
-	db.Find(&files)
+func createFileChunksForFiles(files []dotfiled.File) {
 	filechunker := filechunker.NewFileChunker(3, "\t")
 	var currentChunk dotfiled.Chunk
 	var currentFileChunk dotfiled.FileChunk
 	for _, f := range files {
 		for _, c := range filechunker.Chunk(f.Contents) {
-			c = formatChunk(c, f)
-			if validChunk(c, f) {
+			c = dotfiled.FormatChunk(c, f)
+			if dotfiled.ValidChunk(c, f) {
 				currentChunk = createOrLinkChunk(c, f, db)
 				currentFileChunk = dotfiled.FileChunk{
 					FileID:  f.ID,
@@ -107,109 +134,4 @@ func main() {
 			}
 		}
 	}
-}
-
-func hashChunk(chunk string) string {
-	h := fnv.New32a()
-	h.Write([]byte(chunk))
-	return fmt.Sprintf("%v", h.Sum32())
-}
-
-func createOrLinkChunk(chunk string, file dotfiled.File, db gorm.DB) dotfiled.Chunk {
-	reducedName := reduceNameToType(file.Name)
-	currentChunk := dotfiled.Chunk{}
-	chunkHash := hashChunk(chunk)
-	db.Where("hash = ? and file_type = ?", chunkHash, reducedName).First(&currentChunk)
-
-	if currentChunk.ID == 0 {
-		currentChunk = dotfiled.Chunk{
-			FileType: reducedName,
-			Hash:     chunkHash,
-			Contents: chunk,
-			Tags:     tagsForChunk(chunk, reducedName),
-		}
-		db.Create(&currentChunk)
-	}
-	return currentChunk
-}
-
-func reduceNameToType(name string) string {
-	if strings.Contains(name, "bash") {
-		return "bash"
-	} else if strings.Contains(name, "vimrc") {
-		return "vim"
-	} else if strings.Contains(name, "zsh") {
-		return "zsh"
-	} else if strings.Contains(name, "emacs") || strings.Contains(name, ".el") {
-		return "emacs"
-	} else if strings.Contains(name, "gitignore") {
-		return "gitignore"
-	} else if strings.Contains(name, "gitconfig") {
-		return "gitconfig"
-	} else {
-		return name
-	}
-}
-
-func tagsForChunk(chunk string, fileType string) string {
-	re := regexp.MustCompile("\\W+")
-	cleanChunk := string(re.ReplaceAllLiteralString(chunk, " "))
-	cleanChunk = strings.ToLower(strings.TrimSpace(cleanChunk))
-	return "{" + strings.Join(append(strings.Split(cleanChunk, " "), fileType), ",") + "}"
-}
-
-func validChunk(chunk string, file dotfiled.File) bool {
-	re := regexp.MustCompile("^\\W*$")
-	if re.MatchString(chunk) {
-		return false
-	}
-
-	reducedName := reduceNameToType(file.Name)
-	if reducedName == "vim" {
-		if chunk[0] == '"' {
-			return false
-		}
-		if chunk == "endif" || chunk == "endfunction" {
-			return false
-		}
-	}
-	if reducedName == "bash" || reducedName == "zsh" {
-		if chunk[0] == '#' || chunk == "}" || chunk == "fi" {
-			return false
-		} else if chunk[len(chunk)-1] == '{' {
-			return false
-		} else if len(chunk) > 3 {
-			if chunk[0:4] == "elif" || chunk[0:2] == "if" || chunk[0:4] == "main" {
-				return false
-			}
-		}
-	}
-	if reducedName == "emacs" {
-		if len(chunk) > 1 {
-			if chunk[0:2] == ";;" {
-				return false
-			}
-		}
-	}
-	if reducedName == "gitconfig" || reducedName == "gitignore" {
-		if chunk[0] == '#' {
-			return false
-		} else if chunk[len(chunk)-1] == ']' {
-			return false
-		}
-	}
-	return true
-}
-
-func formatChunk(chunk string, file dotfiled.File) string {
-	reducedName := reduceNameToType(file.Name)
-	if reducedName == "bash" {
-		re := regexp.MustCompile("#(\\w|\\s||[^\"';])*$")
-		chunk = re.ReplaceAllLiteralString(chunk, "")
-		chunk = strings.TrimSpace(chunk)
-		if len(chunk) > 0 && chunk[len(chunk)-1] == ';' {
-			chunk = chunk[0 : len(chunk)-1]
-		}
-	}
-	return chunk
 }
